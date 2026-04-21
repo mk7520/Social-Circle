@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Link as LinkIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { displayName, userHandle, userInitial } from "@/lib/user-utils";
 
 export default function Profile() {
   const { id } = useParams();
@@ -50,15 +51,15 @@ export default function Profile() {
             <Avatar className="w-32 h-32 border-4 border-background shadow-lg -mt-16 md:-mt-24 bg-background">
               <AvatarImage src={user.profileImageUrl || undefined} className="object-cover" />
               <AvatarFallback className="text-4xl bg-primary/10 text-primary">
-                {user.firstName?.[0] || user.username[0]}
+                {userInitial(user)}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1 space-y-2 pt-2">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold font-display">{user.firstName} {user.lastName}</h1>
-                  <p className="text-muted-foreground font-medium">@{user.username}</p>
+                  <h1 className="text-3xl font-bold font-display">{displayName(user)}</h1>
+                  <p className="text-muted-foreground font-medium">@{userHandle(user)}</p>
                 </div>
                 <div className="flex gap-3">
                   <Button className="rounded-full px-6 bg-primary hover:bg-primary/90">Follow</Button>

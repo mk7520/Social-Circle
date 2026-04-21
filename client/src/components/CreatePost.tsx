@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Image, Send, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { userInitial } from "@/lib/user-utils";
 
 export function CreatePost() {
   const [content, setContent] = useState("");
@@ -52,7 +53,7 @@ export function CreatePost() {
         <Avatar className="w-12 h-12 border-2 border-background shadow-sm">
           <AvatarImage src={user.profileImageUrl || undefined} />
           <AvatarFallback className="bg-primary/10 text-primary font-bold">
-            {user.firstName?.[0] || user.username?.[0] || "?"}
+            {userInitial(user)}
           </AvatarFallback>
         </Avatar>
         

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
-import { Heart, MessageCircle, MoreHorizontal, Share2 } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, Share2, Send } from "lucide-react";
+import { displayName, userHandle, userInitial } from "@/lib/user-utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useLikePost, useUnlikePost, useAddComment } from "@/hooks/use-posts";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ export function PostCard({ post }: PostCardProps) {
               <Avatar className="w-10 h-10 border border-border">
                 <AvatarImage src={post.author.profileImageUrl || undefined} />
                 <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                  {post.author.firstName?.[0] || post.author.username[0]}
+                  {userInitial(post.author)}
                 </AvatarFallback>
               </Avatar>
             </div>
@@ -77,11 +78,11 @@ export function PostCard({ post }: PostCardProps) {
           <div>
             <Link href={`/profile/${post.authorId}`}>
               <span className="font-semibold text-foreground hover:underline cursor-pointer block leading-tight">
-                {post.author.firstName} {post.author.lastName}
+                {displayName(post.author)}
               </span>
             </Link>
             <span className="text-xs text-muted-foreground">
-              @{post.author.username} • {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+              @{userHandle(post.author)} • {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
             </span>
           </div>
         </div>
@@ -159,7 +160,7 @@ export function PostCard({ post }: PostCardProps) {
                     <Avatar className="w-8 h-8 border border-border cursor-pointer mt-1">
                       <AvatarImage src={comment.author.profileImageUrl || undefined} />
                       <AvatarFallback className="text-xs bg-muted">
-                        {comment.author.firstName?.[0] || comment.author.username[0]}
+                        {userInitial(comment.author)}
                       </AvatarFallback>
                     </Avatar>
                   </Link>
@@ -167,7 +168,7 @@ export function PostCard({ post }: PostCardProps) {
                     <div className="flex justify-between items-baseline mb-1">
                       <Link href={`/profile/${comment.authorId}`}>
                         <span className="font-semibold text-xs hover:underline cursor-pointer">
-                          {comment.author.firstName} {comment.author.lastName}
+                          {displayName(comment.author)}
                         </span>
                       </Link>
                       <span className="text-[10px] text-muted-foreground">
@@ -190,7 +191,7 @@ export function PostCard({ post }: PostCardProps) {
                   <Avatar className="w-8 h-8 border border-border mt-1">
                     <AvatarImage src={user.profileImageUrl || undefined} />
                     <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                      {user.firstName?.[0] || user.username[0]}
+                      {userInitial(user)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 flex gap-2">

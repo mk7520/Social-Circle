@@ -2,140 +2,165 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
-import { api } from "@shared/routes";
 import { z } from "zod";
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
-  // Setup Auth FIRST
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  next();
+}
+
+export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   await setupAuth(app);
   registerAuthRoutes(app);
 
-  // === Posts Routes ===
-  
-  app.get(api.posts.list.path, async (req, res) => {
-    // Optional: get current user id from req.user
+  // ===== Posts =====
+  app.get("/api/posts", async (req, res) => {
     const userId = (req.user as any)?.claims?.sub;
-    const posts = await storage.getAllPosts(userId);
-    res.json(posts);
+    res.json(await storage.getAllPosts(userId));
   });
 
-  app.get(api.posts.get.path, async (req, res) => {
+  app.get("/api/posts/:id", async (req, res) => {
     const userId = (req.user as any)?.claims?.sub;
     const post = await storage.getPost(Number(req.params.id), userId);
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
+    if (!post) return res.status(404).json({ message: "Post not found" });
     res.json(post);
   });
 
-  app.post(api.posts.create.path, async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
+  app.post("/api/posts", requireAuth, async (req, res) => {
     try {
-      const input = api.posts.create.input.parse(req.body);
+      const input = z.object({
+        content: z.string().min(1),
+        imageUrl: z.string().url().optional().nullable(),
+      }).parse(req.body);
       const userId = (req.user as any).claims.sub;
-      
       const post = await storage.createPost({
-        ...input,
-        authorId: userId,
-        // Ensure imageUrl is handled (undefined if optional and not provided)
+        content: input.content,
         imageUrl: input.imageUrl ?? null,
+        authorId: userId,
       });
-      
       res.status(201).json(post);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
     }
   });
 
-  app.post(api.posts.like.path, async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+  app.post("/api/posts/:id/like", requireAuth, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const postId = Number(req.params.id);
-    
-    // Toggle logic in storage
-    const liked = await storage.toggleLike(postId, userId);
-    
-    // Note: Our API spec says returns { success: boolean }
-    // Ideally toggleLike should handle both like/unlike logic if we share the endpoint,
-    // or we implement separate unlike if strict.
-    // The storage implementation toggles.
+    await storage.toggleLike(Number(req.params.id), userId);
     res.json({ success: true });
   });
 
-  app.post(api.posts.unlike.path, async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+  app.post("/api/posts/:id/unlike", requireAuth, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const postId = Number(req.params.id);
-    
-    // We reuse toggle, but conceptually we should check if liked first.
-    // For MVP, calling toggle on an already unliked post would like it (toggle).
-    // Let's rely on the frontend sending the right action, or improve storage to be explicit.
-    // For now, assume toggle is fine or we can add explicit addLike/removeLike to storage.
-    // Re-using toggle for now as it's simple.
-    await storage.toggleLike(postId, userId);
+    await storage.toggleLike(Number(req.params.id), userId);
     res.json({ success: true });
   });
 
-  app.post(api.posts.comment.path, async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+  app.post("/api/posts/:id/comments", requireAuth, async (req, res) => {
     try {
-      const input = api.posts.comment.input.parse(req.body);
+      const input = z.object({ content: z.string().min(1) }).parse(req.body);
       const userId = (req.user as any).claims.sub;
-      const postId = Number(req.params.id);
-
       const comment = await storage.createComment({
         content: input.content,
-        postId,
+        postId: Number(req.params.id),
         authorId: userId,
       });
-
       res.status(201).json(comment);
     } catch (err) {
-       if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
     }
   });
-  
-  // === User Routes ===
-  app.get(api.users.get.path, async (req, res) => {
+
+  // ===== Users =====
+  app.get("/api/users", async (req, res) => {
+    const userId = (req.user as any)?.claims?.sub;
+    res.json(await storage.listUsers(userId));
+  });
+
+  app.get("/api/users/:id", async (req, res) => {
     const user = await storage.getUser(req.params.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   });
 
-  // Seed Data (if empty)
-  const users = await storage.getAllPosts();
-  if (users.length === 0) {
-    // Note: We can't easily seed posts without users existing in the auth system first.
-    // Since Replit Auth manages users, we wait for real users to sign up.
-    // Or we could mock some if we really wanted, but simpler to start empty.
-    console.log("No posts found. Waiting for users to create content.");
-  }
+  // ===== Messages =====
+  app.get("/api/conversations", requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    res.json(await storage.getConversations(userId));
+  });
+
+  app.get("/api/messages/:otherId", requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    res.json(await storage.getMessagesBetween(userId, req.params.otherId));
+  });
+
+  app.post("/api/messages", requireAuth, async (req, res) => {
+    try {
+      const input = z.object({
+        receiverId: z.string().min(1),
+        content: z.string().min(1),
+      }).parse(req.body);
+      const userId = (req.user as any).claims.sub;
+      const m = await storage.sendMessage({
+        senderId: userId,
+        receiverId: input.receiverId,
+        content: input.content,
+      });
+      res.status(201).json(m);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  // ===== Notifications =====
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    res.json(await storage.getNotifications(userId));
+  });
+
+  app.post("/api/notifications/read", requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    await storage.markNotificationsRead(userId);
+    res.json({ success: true });
+  });
+
+  // ===== Videos =====
+  app.get("/api/videos", async (req, res) => {
+    const userId = (req.user as any)?.claims?.sub;
+    res.json(await storage.getAllVideos(userId));
+  });
+
+  app.post("/api/videos", requireAuth, async (req, res) => {
+    try {
+      const input = z.object({
+        videoUrl: z.string().url(),
+        thumbnailUrl: z.string().url().optional().nullable(),
+        caption: z.string().min(1),
+      }).parse(req.body);
+      const userId = (req.user as any).claims.sub;
+      const v = await storage.createVideo({
+        videoUrl: input.videoUrl,
+        thumbnailUrl: input.thumbnailUrl ?? null,
+        caption: input.caption,
+        authorId: userId,
+      });
+      res.status(201).json(v);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  app.post("/api/videos/:id/like", requireAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    await storage.toggleVideoLike(Number(req.params.id), userId);
+    res.json({ success: true });
+  });
 
   return httpServer;
 }

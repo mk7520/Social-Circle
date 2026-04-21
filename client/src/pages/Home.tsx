@@ -5,6 +5,8 @@ import { CreatePost } from "@/components/CreatePost";
 import { PostCard } from "@/components/PostCard";
 import { Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { displayName, userHandle, userInitial } from "@/lib/user-utils";
+import { Redirect } from "wouter";
 
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
@@ -18,8 +20,13 @@ export default function Home() {
     );
   }
 
-  // Marketing Landing Page for Non-Authenticated Users
+  // Non-authenticated users -> dedicated login page
   if (!user) {
+    return <Redirect to="/login" />;
+  }
+
+  // (legacy marketing block kept below for reference, unreachable)
+  if (false) {
     return (
       <div className="min-h-screen bg-background font-sans">
         <Navigation />
@@ -145,15 +152,15 @@ export default function Home() {
                   <div className="w-20 h-20 rounded-full overflow-hidden mx-auto border-4 border-background shadow-md">
                     {/* Dynamic image from user profile or fallback */}
                     <img 
-                      src={user.profileImageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${user.username}`} 
+                      src={user.profileImageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${userHandle(user)}`} 
                       alt="Profile" 
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
                 </div>
-                <h3 className="mt-4 font-bold text-lg">{user.firstName} {user.lastName}</h3>
-                <p className="text-sm text-muted-foreground">@{user.username}</p>
+                <h3 className="mt-4 font-bold text-lg">{displayName(user)}</h3>
+                <p className="text-sm text-muted-foreground">@{userHandle(user)}</p>
                 
                 <div className="mt-6 pt-6 border-t border-border flex justify-between text-sm">
                   <div className="text-center flex-1">
