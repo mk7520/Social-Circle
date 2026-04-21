@@ -9,6 +9,8 @@ import Login from "@/pages/Login";
 import Messages from "@/pages/Messages";
 import Notifications from "@/pages/Notifications";
 import Videos from "@/pages/Videos";
+import Create from "@/pages/Create";
+import Explore from "@/pages/Explore";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +18,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
+      <Route path="/explore" component={Explore} />
+      <Route path="/create" component={Create} />
       <Route path="/profile/:id" component={Profile} />
       <Route path="/messages" component={Messages} />
       <Route path="/messages/:otherId" component={Messages} />

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,59 +8,74 @@
   --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;
 
-  /* Modern Social Palette - Clean & Premium */
-  --background: 210 20% 98%;
-  --foreground: 222 47% 11%;
-  
-  --primary: 226 70% 55%; /* Vibrant Indigo */
-  --primary-foreground: 210 40% 98%;
-  
-  --secondary: 210 20% 96%;
-  --secondary-foreground: 222 47% 11%;
-  
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  
-  --accent: 262 80% 50%; /* Deep Purple Accent */
-  --accent-foreground: 210 40% 98%;
-  
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  /* Instagram-inspired clean palette */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 6%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 226 70% 55%;
-  
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 6%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 6%;
+
+  --primary: 213 96% 56%;          /* IG blue for action buttons */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 6%;
+
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+
+  --accent: 326 78% 56%;           /* Pink */
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 213 96% 56%;
+
   --radius: 0.75rem;
+
+  /* IG signature gradient */
+  --ig-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
 }
 
 .dark {
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  
-  --primary: 226 70% 60%;
-  --primary-foreground: 222 47% 11%;
-  
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  
-  --accent: 262 80% 60%;
-  --accent-foreground: 210 40% 98%;
-  
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 226 70% 60%;
+  --background: 0 0% 0%;
+  --foreground: 0 0% 98%;
+
+  --card: 0 0% 6%;
+  --card-foreground: 0 0% 98%;
+
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 98%;
+
+  --primary: 213 96% 60%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 98%;
+
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 64%;
+
+  --accent: 326 78% 60%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 16%;
+  --input: 0 0% 16%;
+  --ring: 213 96% 60%;
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
   }
 
@@ -71,11 +86,29 @@
 }
 
 @layer components {
-  .glass-card {
-    @apply bg-white/80 dark:bg-black/40 backdrop-blur-md border border-white/20 shadow-xl;
+  .ig-gradient {
+    background: var(--ig-gradient);
   }
-  
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 transition-all duration-200 active:scale-95 disabled:opacity-50;
+  .ig-gradient-text {
+    background: var(--ig-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
+  .ig-ring {
+    background: var(--ig-gradient);
+    padding: 2px;
+    border-radius: 9999px;
+  }
+  .brand-script {
+    font-family: 'Billabong', 'Plus Jakarta Sans', cursive;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { scrollbar-width: none; }
 }

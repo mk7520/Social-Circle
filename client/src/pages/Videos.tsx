@@ -1,17 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Redirect, Link } from "wouter";
-import { Navigation } from "@/components/Navigation";
+import { Layout } from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Share2, Volume2, VolumeX, Plus, Loader2, Play, Video as VideoIcon } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, Volume2, VolumeX, Plus, Loader2, Play, Music2, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import { displayName, userInitial } from "@/lib/user-utils";
+import { displayName, userHandle, userInitial } from "@/lib/user-utils";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import type { VideoWithRelations } from "@shared/schema";
 
 export default function Videos() {
@@ -22,30 +23,26 @@ export default function Videos() {
   if (!user) return <Redirect to="/login" />;
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Navigation />
-
-      <main className="max-w-md mx-auto py-6 px-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2" data-testid="text-page-title">
-            <VideoIcon className="w-6 h-6 text-primary" /> Shorts
-          </h1>
-          <UploadButton />
-        </div>
-
-        {isLoading ? (
-          <div className="h-[80vh] rounded-3xl bg-white/5 animate-pulse" />
-        ) : !videos || videos.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="snap-y snap-mandatory overflow-y-auto h-[calc(100vh-9rem)] rounded-3xl space-y-4 hide-scrollbar">
-            {videos.map(v => <VideoCard key={v.id} video={v} />)}
+    <Layout noRightRail>
+      <div className="bg-black text-white min-h-screen">
+        <div className="max-w-md mx-auto pt-4 pb-20 md:py-6">
+          <div className="flex items-center justify-between px-4 mb-3">
+            <h1 className="text-xl font-bold" data-testid="text-page-title">Reels</h1>
+            <UploadButton />
           </div>
-        )}
-      </main>
 
-      <style>{`.hide-scrollbar::-webkit-scrollbar{display:none}.hide-scrollbar{scrollbar-width:none}`}</style>
-    </div>
+          {isLoading ? (
+            <div className="h-[80vh] mx-4 rounded-xl bg-white/5 animate-pulse" />
+          ) : !videos || videos.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="snap-y snap-mandatory overflow-y-auto h-[calc(100vh-7.5rem)] md:h-[calc(100vh-5rem)] scrollbar-hide rounded-xl">
+              {videos.map(v => <VideoCard key={v.id} video={v} />)}
+            </div>
+          )}
+        </div>
+      </div>
+    </Layout>
   );
 }
 
@@ -54,6 +51,7 @@ function VideoCard({ video }: { video: VideoWithRelations }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -80,7 +78,7 @@ function VideoCard({ video }: { video: VideoWithRelations }) {
   };
 
   return (
-    <div className="snap-start relative h-[calc(100vh-9rem)] rounded-3xl overflow-hidden bg-neutral-900" data-testid={`video-${video.id}`}>
+    <div className="snap-start relative h-[calc(100vh-7.5rem)] md:h-[calc(100vh-5rem)] mx-2 mb-2 rounded-xl overflow-hidden bg-neutral-950" data-testid={`video-${video.id}`}>
       <video
         ref={ref}
         src={video.videoUrl}
@@ -91,63 +89,83 @@ function VideoCard({ video }: { video: VideoWithRelations }) {
         onClick={togglePlay}
         className="absolute inset-0 w-full h-full object-cover cursor-pointer"
       />
+
       {!playing && (
         <button onClick={togglePlay} className="absolute inset-0 flex items-center justify-center bg-black/30">
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-            <Play className="w-8 h-8 text-white fill-white ml-1" />
-          </div>
+          <Play className="w-20 h-20 text-white/80 fill-white/80" />
         </button>
       )}
 
-      {/* Mute toggle */}
-      <button
-        onClick={() => setMuted(m => !m)}
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center"
-        data-testid={`button-mute-${video.id}`}
-      >
-        {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-      </button>
+      {/* Top bar */}
+      <div className="absolute top-0 inset-x-0 p-4 flex items-center justify-between text-white">
+        <span className="font-bold text-lg drop-shadow">Reels</span>
+        <button onClick={() => setMuted(m => !m)} className="w-9 h-9 rounded-full bg-black/40 backdrop-blur flex items-center justify-center" data-testid={`button-mute-${video.id}`}>
+          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+      </div>
 
       {/* Bottom info */}
-      <div className="absolute left-0 right-16 bottom-0 p-5 bg-gradient-to-t from-black/80 to-transparent">
-        <Link href={`/profile/${video.authorId}`}>
-          <div className="flex items-center gap-3 mb-3 cursor-pointer">
-            <Avatar className="w-9 h-9 border-2 border-white">
+      <div className="absolute left-0 right-16 bottom-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <Link href={`/profile/${video.authorId}`}>
+            <Avatar className="w-9 h-9 border-2 border-white cursor-pointer">
               <AvatarImage src={video.author.profileImageUrl || undefined} />
               <AvatarFallback className="bg-primary text-primary-foreground text-xs">{userInitial(video.author)}</AvatarFallback>
             </Avatar>
-            <span className="font-semibold text-white drop-shadow" data-testid={`text-video-author-${video.id}`}>
-              {displayName(video.author)}
+          </Link>
+          <Link href={`/profile/${video.authorId}`}>
+            <span className="font-semibold drop-shadow cursor-pointer" data-testid={`text-video-author-${video.id}`}>
+              {userHandle(video.author)}
             </span>
-          </div>
-        </Link>
-        <p className="text-sm text-white/90 leading-relaxed line-clamp-3" data-testid={`text-caption-${video.id}`}>
-          {video.caption}
-        </p>
+          </Link>
+          <Button size="sm" variant="outline" className="rounded-lg h-7 px-3 text-xs border-white/80 text-white hover:bg-white hover:text-black bg-transparent" data-testid={`button-follow-${video.id}`}>
+            Follow
+          </Button>
+        </div>
+        <p className="text-sm leading-relaxed line-clamp-2 mb-2 drop-shadow" data-testid={`text-caption-${video.id}`}>{video.caption}</p>
+        <div className="flex items-center gap-2 text-xs">
+          <Music2 className="w-3 h-3" />
+          <span className="truncate">Original audio · {displayName(video.author)}</span>
+        </div>
       </div>
 
-      {/* Right rail actions */}
-      <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5">
-        <button onClick={() => like.mutate()} className="flex flex-col items-center gap-1" data-testid={`button-like-video-${video.id}`}>
-          <div className={`w-12 h-12 rounded-full backdrop-blur flex items-center justify-center transition-all ${video.hasLiked ? "bg-rose-500" : "bg-black/40"}`}>
-            <Heart className={`w-6 h-6 ${video.hasLiked ? "fill-white text-white" : "text-white"}`} />
-          </div>
+      {/* Right rail */}
+      <div className="absolute right-2 bottom-20 flex flex-col items-center gap-5 text-white">
+        <RailButton onClick={() => like.mutate()} testId={`button-like-video-${video.id}`}>
+          <Heart className={cn("w-7 h-7 drop-shadow", video.hasLiked && "fill-rose-500 text-rose-500")} strokeWidth={video.hasLiked ? 0 : 2} />
           <span className="text-xs font-semibold drop-shadow">{video.likeCount}</span>
-        </button>
-        <button className="flex flex-col items-center gap-1" data-testid={`button-comment-video-${video.id}`}>
-          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
-            <MessageCircle className="w-6 h-6" />
-          </div>
+        </RailButton>
+        <RailButton testId={`button-comment-video-${video.id}`}>
+          <MessageCircle className="w-7 h-7 drop-shadow -scale-x-100" strokeWidth={2} />
           <span className="text-xs font-semibold drop-shadow">0</span>
-        </button>
-        <button className="flex flex-col items-center gap-1" data-testid={`button-share-video-${video.id}`}>
-          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center">
-            <Share2 className="w-6 h-6" />
+        </RailButton>
+        <RailButton testId={`button-share-video-${video.id}`}>
+          <Send className="w-7 h-7 drop-shadow" strokeWidth={2} />
+        </RailButton>
+        <RailButton testId={`button-bookmark-video-${video.id}`} onClick={() => setBookmarked(b => !b)}>
+          <Bookmark className={cn("w-7 h-7 drop-shadow", bookmarked && "fill-white")} strokeWidth={2} />
+        </RailButton>
+        <RailButton testId={`button-more-video-${video.id}`}>
+          <MoreHorizontal className="w-7 h-7 drop-shadow" strokeWidth={2} />
+        </RailButton>
+        <Link href={`/profile/${video.authorId}`}>
+          <div className="w-7 h-7 rounded border-2 border-white overflow-hidden">
+            <Avatar className="w-full h-full rounded-none">
+              <AvatarImage src={video.author.profileImageUrl || undefined} />
+              <AvatarFallback className="rounded-none text-[10px] bg-primary">{userInitial(video.author)}</AvatarFallback>
+            </Avatar>
           </div>
-          <span className="text-xs font-semibold drop-shadow">Share</span>
-        </button>
+        </Link>
       </div>
     </div>
+  );
+}
+
+function RailButton({ children, onClick, testId }: { children: React.ReactNode; onClick?: () => void; testId?: string }) {
+  return (
+    <button onClick={onClick} className="flex flex-col items-center gap-1" data-testid={testId}>
+      {children}
+    </button>
   );
 }
 
@@ -161,16 +179,13 @@ function UploadButton() {
 
   const create = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/videos", {
-        videoUrl, caption,
-        thumbnailUrl: thumbnailUrl || undefined,
-      });
+      const res = await apiRequest("POST", "/api/videos", { videoUrl, caption, thumbnailUrl: thumbnailUrl || undefined });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
       setVideoUrl(""); setCaption(""); setThumbnailUrl(""); setOpen(false);
-      toast({ title: "Video posted", description: "Your short is live!" });
+      toast({ title: "Posted", description: "Your reel is live." });
     },
     onError: () => toast({ title: "Failed", description: "Could not upload video.", variant: "destructive" }),
   });
@@ -178,29 +193,27 @@ function UploadButton() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="rounded-full gap-1" data-testid="button-upload-video">
-          <Plus className="w-4 h-4" /> Upload
+        <Button size="sm" className="rounded-full gap-1 h-8" data-testid="button-upload-video">
+          <Plus className="w-4 h-4" /> New reel
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-card text-foreground">
-        <DialogHeader>
-          <DialogTitle>Post a short video</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>Create new reel</DialogTitle></DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); if (videoUrl && caption) create.mutate(); }} className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-1">
             <label className="text-sm font-medium">Video URL (mp4)</label>
             <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://..." required data-testid="input-video-url" />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1">
             <label className="text-sm font-medium">Thumbnail URL (optional)</label>
             <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." data-testid="input-thumbnail-url" />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1">
             <label className="text-sm font-medium">Caption</label>
-            <Textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Describe your video..." required data-testid="input-caption" />
+            <Textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Write a caption..." required data-testid="input-caption" />
           </div>
-          <Button type="submit" disabled={create.isPending} className="w-full rounded-full" data-testid="button-submit-video">
-            {create.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
+          <Button type="submit" disabled={create.isPending} className="w-full rounded-lg" data-testid="button-submit-video">
+            {create.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Share reel"}
           </Button>
         </form>
       </DialogContent>
@@ -210,10 +223,10 @@ function UploadButton() {
 
 function EmptyState() {
   return (
-    <div className="rounded-3xl border border-dashed border-white/20 p-12 text-center" data-testid="empty-videos">
-      <VideoIcon className="w-12 h-12 mx-auto text-white/30 mb-4" />
-      <p className="font-medium">No shorts yet</p>
-      <p className="text-sm text-white/60 mt-1">Be the first to post.</p>
+    <div className="mx-4 rounded-xl border border-dashed border-white/20 p-12 text-center" data-testid="empty-videos">
+      <Play className="w-12 h-12 mx-auto text-white/30 mb-4" />
+      <p className="font-medium">No reels yet</p>
+      <p className="text-sm text-white/60 mt-1">Be the first to post a short video.</p>
     </div>
   );
 }

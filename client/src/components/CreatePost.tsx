@@ -4,123 +4,159 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Image, Send, X } from "lucide-react";
+import { Image as ImageIcon, X, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { userInitial } from "@/lib/user-utils";
+import { userInitial, userHandle } from "@/lib/user-utils";
+import { useLocation } from "wouter";
 
-export function CreatePost() {
+interface CreatePostProps {
+  /** Render as a full-page composer (Instagram-style) */
+  fullPage?: boolean;
+  onDone?: () => void;
+}
+
+export function CreatePost({ fullPage = false, onDone }: CreatePostProps) {
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [showImageInput, setShowImageInput] = useState(false);
-  
   const { user } = useAuth();
   const { toast } = useToast();
   const createPost = useCreatePost();
+  const [, navigate] = useLocation();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
-
     createPost.mutate(
       { content, imageUrl: imageUrl || undefined },
       {
         onSuccess: () => {
-          setContent("");
-          setImageUrl("");
-          setShowImageInput(false);
-          toast({
-            title: "Post created",
-            description: "Your thoughts have been shared with the world.",
-          });
+          setContent(""); setImageUrl("");
+          toast({ title: "Shared", description: "Your post is now in the feed." });
+          onDone?.();
+          if (fullPage) navigate("/");
         },
-        onError: () => {
-          toast({
-            title: "Error",
-            description: "Failed to create post. Please try again.",
-            variant: "destructive",
-          });
-        },
+        onError: () => toast({ title: "Error", description: "Failed to share post.", variant: "destructive" }),
       }
     );
   };
 
   if (!user) return null;
 
-  return (
-    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border/50 mb-8">
-      <div className="flex gap-4">
-        <Avatar className="w-12 h-12 border-2 border-background shadow-sm">
-          <AvatarImage src={user.profileImageUrl || undefined} />
-          <AvatarFallback className="bg-primary/10 text-primary font-bold">
-            {userInitial(user)}
-          </AvatarFallback>
-        </Avatar>
-        
-        <form onSubmit={handleSubmit} className="flex-1 space-y-4">
-          <div className="relative">
+  if (fullPage) {
+    return (
+      <div className="max-w-3xl mx-auto py-6 px-4">
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="rounded-full" data-testid="button-back">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-xl font-semibold">Create new post</h1>
+          <Button
+            onClick={handleSubmit}
+            disabled={createPost.isPending || !content.trim()}
+            variant="ghost"
+            className="text-primary font-bold hover:text-primary/80"
+            data-testid="button-share-post"
+          >
+            {createPost.isPending ? "Sharing..." : "Share"}
+          </Button>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 bg-card border border-border rounded-2xl overflow-hidden">
+          {/* Preview */}
+          <div className="aspect-square bg-secondary/50 flex items-center justify-center relative">
+            {imageUrl ? (
+              <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <div className="text-center text-muted-foreground p-8">
+                <ImageIcon className="w-16 h-16 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">Paste an image URL to preview</p>
+              </div>
+            )}
+          </div>
+
+          {/* Form */}
+          <div className="p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <Avatar className="w-9 h-9">
+                <AvatarImage src={user.profileImageUrl || undefined} />
+                <AvatarFallback className="bg-secondary text-xs">{userInitial(user)}</AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-sm">{userHandle(user)}</span>
+            </div>
+
             <Textarea
-              placeholder="What's on your mind?"
+              placeholder="Write a caption..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[100px] resize-none border-none bg-secondary/50 focus:bg-background focus:ring-2 ring-primary/20 rounded-xl transition-all p-4 text-base placeholder:text-muted-foreground/70"
+              className="min-h-[140px] resize-none border-none bg-transparent focus-visible:ring-0 px-0 text-base"
+              data-testid="input-caption"
             />
-          </div>
 
-          <AnimatePresence>
-            {showImageInput && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="relative"
-              >
-                <input
-                  type="text"
-                  placeholder="Enter image URL..."
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-secondary/30 border border-border focus:outline-none focus:border-primary/50 text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowImageInput(false)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="flex items-center justify-between pt-2 border-t border-border/40">
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowImageInput(!showImageInput)}
-                className={showImageInput ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"}
-              >
-                <Image className="w-4 h-4 mr-2" />
-                Add Photo
-              </Button>
+            <div>
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Image URL (optional)</label>
+              <Input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://..."
+                className="mt-1 rounded-xl"
+                data-testid="input-image-url"
+              />
             </div>
-            
-            <Button 
-              type="submit" 
-              disabled={createPost.isPending || !content.trim()}
-              className="rounded-full px-6 font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 transition-all"
-            >
-              {createPost.isPending ? "Posting..." : (
-                <>
-                  Post <Send className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
           </div>
-        </form>
+        </div>
       </div>
+    );
+  }
+
+  // Inline compact composer (used in feed)
+  const [showImageInput, setShowImageInput] = useState(false);
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 mb-6">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex gap-3">
+          <Avatar className="w-10 h-10">
+            <AvatarImage src={user.profileImageUrl || undefined} />
+            <AvatarFallback className="bg-secondary">{userInitial(user)}</AvatarFallback>
+          </Avatar>
+          <Textarea
+            placeholder={`What's on your mind, ${userHandle(user)}?`}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="min-h-[60px] resize-none border-none bg-secondary/40 rounded-2xl focus-visible:ring-1 focus-visible:ring-primary/30"
+            data-testid="input-quick-post"
+          />
+        </div>
+
+        <AnimatePresence>
+          {showImageInput && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="relative">
+              <Input
+                placeholder="Image URL..."
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className="rounded-xl"
+                data-testid="input-quick-image"
+              />
+              <button type="button" onClick={() => { setShowImageInput(false); setImageUrl(""); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowImageInput(s => !s)} className={showImageInput ? "text-primary" : "text-foreground/70"} data-testid="button-toggle-image">
+            <ImageIcon className="w-5 h-5 mr-2" />
+            Photo
+          </Button>
+          <Button type="submit" disabled={createPost.isPending || !content.trim()} className="rounded-full font-semibold" data-testid="button-share">
+            {createPost.isPending ? "Sharing..." : "Share"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

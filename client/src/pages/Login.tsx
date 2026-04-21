@@ -1,90 +1,99 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, MessageCircle, Heart, Video, Bell, ShieldCheck } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export default function Login() {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-background">
-      {/* Left: Brand / Hero */}
-      <div className="relative lg:w-1/2 overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-accent text-white p-10 lg:p-16 flex flex-col justify-between">
-        <div className="absolute -top-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-20 w-[500px] h-[500px] bg-accent/40 rounded-full blur-3xl" />
-
-        <div className="relative z-10 flex items-center gap-3" data-testid="brand-logo">
-          <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-lg">
-            <span className="font-bold text-xl font-display">S</span>
-          </div>
-          <span className="font-display font-bold text-2xl">Socially</span>
-        </div>
-
-        <div className="relative z-10 space-y-8 max-w-md">
-          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur rounded-full px-4 py-1.5 text-sm font-medium">
-            <Sparkles className="w-4 h-4" /> Welcome to your circle
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-display font-extrabold leading-tight">
-            Share moments. <br /> Spark conversations. <br /> Build your community.
-          </h1>
-          <p className="text-white/80 text-lg leading-relaxed">
-            Sign in with one click and start posting, chatting, watching short videos and connecting with friends.
-          </p>
-
-          <div className="grid grid-cols-2 gap-4 pt-4">
-            {[
-              { Icon: Heart, label: "Likes & posts" },
-              { Icon: MessageCircle, label: "Direct messages" },
-              { Icon: Video, label: "Short videos" },
-              { Icon: Bell, label: "Live notifications" },
-            ].map(({ Icon, label }) => (
-              <div key={label} className="flex items-center gap-3 bg-white/10 backdrop-blur rounded-xl p-3">
-                <Icon className="w-5 h-5" />
-                <span className="text-sm font-medium">{label}</span>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-[935px] flex items-center justify-center gap-8">
+        {/* Phone mockup (desktop only) */}
+        <div className="hidden lg:block relative w-[380px] h-[580px]">
+          <div className="absolute inset-0 ig-gradient rounded-[3rem] blur-3xl opacity-20" />
+          <div className="relative w-full h-full bg-foreground/5 rounded-[3rem] border-8 border-foreground/10 overflow-hidden shadow-2xl">
+            {/* Mock IG screen */}
+            <div className="absolute inset-0 bg-background p-4 flex flex-col gap-3 overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-xl font-bold ig-gradient-text" style={{ fontFamily: "'Plus Jakarta Sans', cursive" }}>Socially</span>
+                <div className="flex gap-2">
+                  <div className="w-6 h-6 rounded-full bg-secondary" />
+                  <div className="w-6 h-6 rounded-full bg-secondary" />
+                </div>
               </div>
-            ))}
+              {/* Stories */}
+              <div className="flex gap-2 mt-2">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="ig-ring shrink-0">
+                    <div className="bg-background rounded-full p-[2px]">
+                      <div className="w-12 h-12 rounded-full bg-secondary" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Post */}
+              <div className="mt-3 bg-card border border-border rounded-xl overflow-hidden">
+                <div className="flex items-center gap-2 p-3">
+                  <div className="w-8 h-8 rounded-full ig-gradient" />
+                  <div className="flex-1 space-y-1">
+                    <div className="h-2.5 w-20 bg-secondary rounded" />
+                    <div className="h-2 w-12 bg-secondary/60 rounded" />
+                  </div>
+                </div>
+                <div className="aspect-square bg-gradient-to-br from-orange-200 via-pink-200 to-purple-200" />
+                <div className="p-3 space-y-2">
+                  <div className="flex gap-3">
+                    <div className="w-6 h-6 rounded bg-secondary" />
+                    <div className="w-6 h-6 rounded bg-secondary" />
+                    <div className="w-6 h-6 rounded bg-secondary" />
+                  </div>
+                  <div className="h-2.5 w-24 bg-secondary rounded" />
+                  <div className="h-2.5 w-3/4 bg-secondary/60 rounded" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <p className="relative z-10 text-white/70 text-sm">© Socially — Connect deeper.</p>
-      </div>
+        {/* Auth Card */}
+        <div className="w-full max-w-sm space-y-3">
+          <div className="bg-card border border-border rounded-xl p-8 space-y-6">
+            <h1 className="text-center text-5xl font-bold ig-gradient-text pt-2 pb-4" style={{ fontFamily: "'Plus Jakarta Sans', cursive" }} data-testid="text-brand-heading">
+              Socially
+            </h1>
 
-      {/* Right: Auth Card */}
-      <div className="lg:w-1/2 flex items-center justify-center p-6 lg:p-16">
-        <div className="w-full max-w-md space-y-8">
-          <div className="space-y-3 text-center lg:text-left">
-            <h2 className="text-3xl font-display font-bold tracking-tight" data-testid="text-login-heading">
-              Sign in or create your account
-            </h2>
-            <p className="text-muted-foreground">
-              Continue securely with your Replit account. New here? An account will be created for you automatically.
+            <div className="space-y-2">
+              <Input placeholder="Phone number, username, or email" className="rounded-md bg-secondary/40 border-border h-11 text-sm" disabled data-testid="input-username-mock" />
+              <Input placeholder="Password" type="password" className="rounded-md bg-secondary/40 border-border h-11 text-sm" disabled data-testid="input-password-mock" />
+            </div>
+
+            <Button asChild className="w-full h-10 rounded-lg font-semibold text-sm" data-testid="button-login">
+              <a href="/api/login">Log in</a>
+            </Button>
+
+            <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold uppercase">
+              <div className="flex-1 h-px bg-border" />
+              <span>OR</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            <a
+              href="/api/login"
+              className="flex items-center justify-center gap-2 text-sm font-semibold text-primary hover:text-foreground transition-colors py-2"
+              data-testid="button-replit-login"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm0 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10z"/></svg>
+              Continue with Replit
+            </a>
+
+            <p className="text-center text-xs text-muted-foreground">
+              <a href="#" className="hover:underline">Forgot password?</a>
             </p>
           </div>
 
-          <div className="space-y-4">
-            <Button
-              asChild
-              size="lg"
-              className="w-full h-14 rounded-2xl text-base font-semibold shadow-xl shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 transition-all"
-              data-testid="button-login"
-            >
-              <a href="/api/login">Continue with Replit</a>
-            </Button>
-
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="w-full h-14 rounded-2xl text-base border-2"
-              data-testid="button-signup"
-            >
-              <a href="/api/login">Create new account</a>
-            </Button>
+          <div className="bg-card border border-border rounded-xl p-6 text-center text-sm">
+            Don't have an account? <a href="/api/login" className="text-primary font-semibold" data-testid="link-signup">Sign up</a>
           </div>
 
-          <div className="flex items-center gap-3 rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">
-            <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-            <span>Your sign-in is handled securely. We never see your password.</span>
-          </div>
-
-          <p className="text-xs text-muted-foreground text-center">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
+          <p className="text-center text-xs text-muted-foreground pt-4">
+            By continuing, you agree to our Terms of Service.
           </p>
         </div>
       </div>

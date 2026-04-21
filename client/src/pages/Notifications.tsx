@@ -1,27 +1,15 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Navigation } from "@/components/Navigation";
+import { Layout } from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Mail, UserPlus, Loader2, Bell, Redo } from "lucide-react";
+import { Loader2, Heart } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link, Redirect } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { displayName, userInitial } from "@/lib/user-utils";
+import { displayName, userHandle, userInitial } from "@/lib/user-utils";
 import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
 import type { NotificationWithActor } from "@shared/schema";
-
-const ICONS: Record<string, any> = {
-  like: Heart,
-  comment: MessageCircle,
-  message: Mail,
-  follow: UserPlus,
-};
-const COLORS: Record<string, string> = {
-  like: "bg-rose-100 text-rose-600 dark:bg-rose-950/40",
-  comment: "bg-blue-100 text-blue-600 dark:bg-blue-950/40",
-  message: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40",
-  follow: "bg-purple-100 text-purple-600 dark:bg-purple-950/40",
-};
 
 export default function Notifications() {
   const { user, isLoading: authLoading } = useAuth();
@@ -45,73 +33,85 @@ export default function Notifications() {
   if (authLoading) return <FullLoader />;
   if (!user) return <Redirect to="/login" />;
 
+  // Group by day
+  const groups: { label: string; items: NotificationWithActor[] }[] = [];
+  const now = Date.now();
+  const day = 24 * 3600 * 1000;
+  const today: NotificationWithActor[] = [];
+  const week: NotificationWithActor[] = [];
+  const earlier: NotificationWithActor[] = [];
+  (data ?? []).forEach(n => {
+    const age = now - new Date(n.createdAt).getTime();
+    if (age < day) today.push(n);
+    else if (age < 7 * day) week.push(n);
+    else earlier.push(n);
+  });
+  if (today.length) groups.push({ label: "Today", items: today });
+  if (week.length) groups.push({ label: "This week", items: week });
+  if (earlier.length) groups.push({ label: "Earlier", items: earlier });
+
   return (
-    <div className="min-h-screen bg-secondary/30 pb-20">
-      <Navigation />
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-display font-bold flex items-center gap-3" data-testid="text-page-title">
-              <Bell className="w-7 h-7 text-primary" />
-              Notifications
-            </h1>
-            <p className="text-muted-foreground mt-1">Stay up to date with your circle</p>
-          </div>
-        </div>
+    <Layout>
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-6">
+        <h1 className="text-xl font-bold mb-2" data-testid="text-page-title">Notifications</h1>
 
         {isLoading ? (
-          <div className="space-y-3">
-            {[1,2,3,4].map(i => <div key={i} className="h-20 bg-card rounded-2xl animate-pulse border border-border/50" />)}
+          <div className="space-y-3 mt-4">
+            {[1,2,3,4].map(i => <div key={i} className="h-16 bg-secondary rounded-xl animate-pulse" />)}
           </div>
         ) : !data || data.length === 0 ? (
-          <div className="bg-card rounded-2xl p-12 text-center border border-dashed border-border" data-testid="empty-notifications">
-            <Bell className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
-            <p className="font-medium">You're all caught up</p>
-            <p className="text-sm text-muted-foreground mt-1">New activity will show here.</p>
+          <div className="py-20 flex flex-col items-center text-center" data-testid="empty-notifications">
+            <div className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4">
+              <Heart className="w-7 h-7" />
+            </div>
+            <h3 className="text-2xl font-light mb-1">Activity On Your Posts</h3>
+            <p className="text-sm text-muted-foreground">When someone likes or comments on one of your posts, you'll see it here.</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {data.map(n => {
-              const Icon = ICONS[n.type] ?? Bell;
-              const color = COLORS[n.type] ?? "bg-muted text-foreground";
-              const href = n.type === "message"
-                ? `/messages/${n.actorId}`
-                : n.postId
-                  ? `/`
-                  : `/profile/${n.actorId}`;
-              return (
-                <Link key={n.id} href={href}>
-                  <div
-                    className={`group flex items-center gap-4 p-4 bg-card rounded-2xl border border-border/50 hover-elevate active-elevate-2 cursor-pointer transition-all ${!n.read ? "ring-2 ring-primary/20" : ""}`}
-                    data-testid={`notification-${n.id}`}
-                  >
-                    <div className="relative">
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={n.actor.profileImageUrl || undefined} />
-                        <AvatarFallback className="bg-primary/10 text-primary">{userInitial(n.actor)}</AvatarFallback>
-                      </Avatar>
-                      <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-card ${color}`}>
-                        <Icon className="w-3 h-3" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm">
-                        <span className="font-semibold">{displayName(n.actor)}</span>
-                        <span className="text-muted-foreground"> {n.message}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                      </p>
-                    </div>
-                    {!n.read && <div className="w-2 h-2 rounded-full bg-primary shrink-0" />}
-                  </div>
-                </Link>
-              );
-            })}
+          <div className="space-y-6 mt-4">
+            {groups.map(g => (
+              <section key={g.label}>
+                <h2 className="text-sm font-semibold mb-2 px-1">{g.label}</h2>
+                <ul className="space-y-1">
+                  {g.items.map(n => {
+                    const href = n.type === "message"
+                      ? `/messages/${n.actorId}`
+                      : `/profile/${n.actorId}`;
+                    return (
+                      <li key={n.id}>
+                        <Link href={href}>
+                          <div
+                            className={`flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-secondary/50 cursor-pointer ${!n.read ? "bg-primary/5" : ""}`}
+                            data-testid={`notification-${n.id}`}
+                          >
+                            <Avatar className="w-11 h-11">
+                              <AvatarImage src={n.actor.profileImageUrl || undefined} />
+                              <AvatarFallback className="bg-secondary text-xs">{userInitial(n.actor)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm">
+                                <span className="font-semibold">{userHandle(n.actor)}</span>{" "}
+                                <span className="text-foreground/80">{n.message}.</span>{" "}
+                                <span className="text-muted-foreground text-xs">
+                                  {formatDistanceToNow(new Date(n.createdAt))}
+                                </span>
+                              </p>
+                            </div>
+                            {n.type !== "message" && (
+                              <Button size="sm" variant="secondary" className="rounded-lg font-semibold text-xs h-8" data-testid={`button-followback-${n.id}`}>Follow</Button>
+                            )}
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 }
 

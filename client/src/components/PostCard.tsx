@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
-import { Heart, MessageCircle, MoreHorizontal, Share2, Send } from "lucide-react";
-import { displayName, userHandle, userInitial } from "@/lib/user-utils";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Smile } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLikePost, useUnlikePost, useAddComment } from "@/hooks/use-posts";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import type { z } from "zod";
 import type { api } from "@shared/routes";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { displayName, userHandle, userInitial } from "@/lib/user-utils";
 
 type Post = z.infer<typeof api.posts.list.responses[200]>[0];
 
@@ -25,197 +23,195 @@ export function PostCard({ post }: PostCardProps) {
   const likeMutation = useLikePost();
   const unlikeMutation = useUnlikePost();
   const commentMutation = useAddComment();
-  
-  const [showComments, setShowComments] = useState(false);
+
+  const [bookmarked, setBookmarked] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [showAllComments, setShowAllComments] = useState(false);
 
   const isLiked = post.hasLiked;
   const isPending = likeMutation.isPending || unlikeMutation.isPending;
 
   const handleLike = () => {
-    if (!user) return; // Should probably redirect to login or show toast
-    if (isLiked) {
-      unlikeMutation.mutate(post.id);
-    } else {
-      likeMutation.mutate(post.id);
-    }
+    if (!user) return;
+    if (isLiked) unlikeMutation.mutate(post.id);
+    else likeMutation.mutate(post.id);
   };
 
   const handleComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-    
     commentMutation.mutate(
       { postId: post.id, content: commentText },
-      {
-        onSuccess: () => {
-          setCommentText("");
-        }
-      }
+      { onSuccess: () => setCommentText("") }
     );
   };
 
+  const visibleComments = showAllComments ? post.comments : post.comments.slice(0, 2);
+  const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: false });
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border/50 hover:shadow-md transition-shadow duration-300"
+      transition={{ duration: 0.25 }}
+      className="bg-card border border-border rounded-xl overflow-hidden mb-6"
+      data-testid={`post-${post.id}`}
     >
       {/* Header */}
-      <div className="p-5 flex items-start justify-between">
+      <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href={`/profile/${post.authorId}`}>
-            <div className="cursor-pointer hover:opacity-80 transition-opacity">
-              <Avatar className="w-10 h-10 border border-border">
-                <AvatarImage src={post.author.profileImageUrl || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                  {userInitial(post.author)}
-                </AvatarFallback>
-              </Avatar>
+            <div className="ig-ring cursor-pointer">
+              <div className="bg-background rounded-full p-[1.5px]">
+                <Avatar className="w-9 h-9">
+                  <AvatarImage src={post.author.profileImageUrl || undefined} />
+                  <AvatarFallback className="bg-secondary text-xs">{userInitial(post.author)}</AvatarFallback>
+                </Avatar>
+              </div>
             </div>
           </Link>
-          <div>
+          <div className="flex flex-col leading-tight">
             <Link href={`/profile/${post.authorId}`}>
-              <span className="font-semibold text-foreground hover:underline cursor-pointer block leading-tight">
-                {displayName(post.author)}
+              <span className="text-sm font-semibold hover:underline cursor-pointer" data-testid={`text-author-${post.id}`}>
+                {userHandle(post.author)}
               </span>
             </Link>
-            <span className="text-xs text-muted-foreground">
-              @{userHandle(post.author)} • {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-            </span>
+            <span className="text-xs text-muted-foreground">{displayName(post.author)} · {timeAgo}</span>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="icon" className="rounded-full text-foreground/70" data-testid={`button-more-${post.id}`}>
           <MoreHorizontal className="w-5 h-5" />
         </Button>
       </div>
 
-      {/* Content */}
-      <div className="px-5 pb-3">
-        <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed text-[15px]">
-          {post.content}
-        </p>
-      </div>
-
       {/* Image */}
-      {post.imageUrl && (
-        <div className="mt-2 relative bg-secondary/20">
-          {/* Descriptive comment for dynamic image */}
-          {/* Dynamic image from user post */}
-          <img 
-            src={post.imageUrl} 
-            alt="Post content" 
-            className="w-full h-auto max-h-[500px] object-cover"
+      {post.imageUrl ? (
+        <div className="relative w-full aspect-square bg-secondary/40 overflow-hidden">
+          <img
+            src={post.imageUrl}
+            alt="Post"
+            className="w-full h-full object-cover"
+            onDoubleClick={handleLike}
+            data-testid={`img-post-${post.id}`}
           />
+        </div>
+      ) : (
+        <div className="px-5 pb-3">
+          <p className="text-base whitespace-pre-wrap leading-relaxed">{post.content}</p>
         </div>
       )}
 
-      {/* Actions */}
-      <div className="px-5 py-3 flex items-center justify-between border-t border-border/40 mt-2">
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
+      {/* Action bar */}
+      <div className="flex items-center justify-between px-3 pt-2 pb-1">
+        <div className="flex items-center">
+          <button
             onClick={handleLike}
             disabled={isPending || !user}
-            className={cn(
-              "gap-2 rounded-full px-3 transition-colors",
-              isLiked ? "text-rose-500 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30" : "text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-            )}
+            className="p-2 hover:opacity-60 transition-opacity"
+            data-testid={`button-like-${post.id}`}
           >
-            <Heart className={cn("w-5 h-5 transition-transform", isLiked && "fill-current scale-110")} />
-            <span className="font-medium">{post.likeCount || 0}</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowComments(!showComments)}
-            className="gap-2 rounded-full px-3 text-muted-foreground hover:text-primary hover:bg-primary/5"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span className="font-medium">{post.comments.length}</span>
-          </Button>
+            <Heart
+              className={cn("w-7 h-7 transition-transform active:scale-90", isLiked && "fill-rose-500 text-rose-500")}
+              strokeWidth={isLiked ? 0 : 1.8}
+            />
+          </button>
+          <button className="p-2 hover:opacity-60 transition-opacity" data-testid={`button-comment-${post.id}`}>
+            <MessageCircle className="w-7 h-7 -scale-x-100" strokeWidth={1.8} />
+          </button>
+          <button className="p-2 hover:opacity-60 transition-opacity" data-testid={`button-share-${post.id}`}>
+            <Send className="w-7 h-7" strokeWidth={1.8} />
+          </button>
         </div>
-        
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary rounded-full">
-          <Share2 className="w-5 h-5" />
-        </Button>
+        <button
+          onClick={() => setBookmarked(b => !b)}
+          className="p-2 hover:opacity-60 transition-opacity"
+          data-testid={`button-bookmark-${post.id}`}
+        >
+          <Bookmark className={cn("w-7 h-7", bookmarked && "fill-foreground")} strokeWidth={1.8} />
+        </button>
       </div>
 
-      {/* Comments Section */}
-      <AnimatePresence>
-        {showComments && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden bg-secondary/30 border-t border-border/40"
-          >
-            <div className="p-5 space-y-4">
-              {post.comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3 text-sm">
-                  <Link href={`/profile/${comment.authorId}`}>
-                    <Avatar className="w-8 h-8 border border-border cursor-pointer mt-1">
-                      <AvatarImage src={comment.author.profileImageUrl || undefined} />
-                      <AvatarFallback className="text-xs bg-muted">
-                        {userInitial(comment.author)}
-                      </AvatarFallback>
-                    </Avatar>
+      {/* Likes count */}
+      <div className="px-4">
+        <p className="text-sm font-semibold" data-testid={`text-likes-${post.id}`}>
+          {post.likeCount?.toLocaleString() ?? 0} {post.likeCount === 1 ? "like" : "likes"}
+        </p>
+      </div>
+
+      {/* Caption (only when there's an image so text isn't duplicated) */}
+      {post.imageUrl && post.content && (
+        <div className="px-4 mt-1">
+          <p className="text-sm">
+            <Link href={`/profile/${post.authorId}`}>
+              <span className="font-semibold mr-2 cursor-pointer hover:underline">{userHandle(post.author)}</span>
+            </Link>
+            <span className="whitespace-pre-wrap">{post.content}</span>
+          </p>
+        </div>
+      )}
+
+      {/* Comments preview */}
+      {post.comments.length > 0 && (
+        <div className="px-4 mt-1">
+          {!showAllComments && post.comments.length > 2 && (
+            <button
+              onClick={() => setShowAllComments(true)}
+              className="text-sm text-muted-foreground hover:underline"
+              data-testid={`button-view-all-${post.id}`}
+            >
+              View all {post.comments.length} comments
+            </button>
+          )}
+          <div className="space-y-1 mt-1">
+            <AnimatePresence initial={false}>
+              {visibleComments.map(c => (
+                <motion.p
+                  key={c.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-sm"
+                  data-testid={`comment-${c.id}`}
+                >
+                  <Link href={`/profile/${c.authorId}`}>
+                    <span className="font-semibold mr-2 cursor-pointer hover:underline">{userHandle(c.author)}</span>
                   </Link>
-                  <div className="bg-background rounded-2xl p-3 shadow-sm border border-border/50 flex-1">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <Link href={`/profile/${comment.authorId}`}>
-                        <span className="font-semibold text-xs hover:underline cursor-pointer">
-                          {displayName(comment.author)}
-                        </span>
-                      </Link>
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(comment.createdAt))} ago
-                      </span>
-                    </div>
-                    <p className="text-foreground/80">{comment.content}</p>
-                  </div>
-                </div>
+                  <span>{c.content}</span>
+                </motion.p>
               ))}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
 
-              {post.comments.length === 0 && (
-                <div className="text-center py-4 text-muted-foreground text-sm italic">
-                  No comments yet. Be the first!
-                </div>
-              )}
+      {/* Time */}
+      <div className="px-4 pt-2 pb-3">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo} ago</span>
+      </div>
 
-              {user && (
-                <form onSubmit={handleComment} className="flex gap-3 mt-4 pt-2">
-                  <Avatar className="w-8 h-8 border border-border mt-1">
-                    <AvatarImage src={user.profileImageUrl || undefined} />
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                      {userInitial(user)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 flex gap-2">
-                    <Textarea
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      placeholder="Write a comment..."
-                      className="min-h-[40px] h-[40px] py-2 resize-none rounded-2xl bg-background border-border/80 focus:ring-primary/20"
-                    />
-                    <Button 
-                      type="submit" 
-                      size="icon" 
-                      disabled={!commentText.trim() || commentMutation.isPending}
-                      className="rounded-full w-10 h-10 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+      {/* Comment input */}
+      {user && (
+        <form
+          onSubmit={handleComment}
+          className="border-t border-border flex items-center px-4 py-2 gap-2"
+        >
+          <Smile className="w-6 h-6 text-foreground/70 shrink-0" />
+          <input
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Add a comment..."
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            data-testid={`input-comment-${post.id}`}
+          />
+          <button
+            type="submit"
+            disabled={!commentText.trim() || commentMutation.isPending}
+            className="text-sm font-semibold text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+            data-testid={`button-post-comment-${post.id}`}
+          >
+            Post
+          </button>
+        </form>
+      )}
+    </motion.article>
   );
 }

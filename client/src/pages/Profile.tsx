@@ -1,126 +1,161 @@
-import { useParams } from "wouter";
+import { useParams, Redirect, Link } from "wouter";
 import { useUser } from "@/hooks/use-users";
 import { usePosts } from "@/hooks/use-posts";
-import { Navigation } from "@/components/Navigation";
-import { PostCard } from "@/components/PostCard";
+import { Layout } from "@/components/Layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Link as LinkIcon, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Settings, Grid3x3, Bookmark, Film, MessageCircle, Camera } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { displayName, userHandle, userInitial } from "@/lib/user-utils";
+import { useState } from "react";
 
 export default function Profile() {
   const { id } = useParams();
-  const { data: user, isLoading: userLoading } = useUser(id!);
+  const { user: me } = useAuth();
+  const { data: profileUser, isLoading: userLoading } = useUser(id!);
   const { data: allPosts, isLoading: postsLoading } = usePosts();
+  const [tab, setTab] = useState<"posts" | "saved" | "tagged">("posts");
 
-  // Filter posts for this user (ideally this would be a separate API endpoint)
-  const userPosts = allPosts?.filter(post => post.authorId === id);
-
-  if (userLoading || postsLoading) {
+  if (userLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </Layout>
     );
   }
 
-  if (!user) {
+  if (!profileUser) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+      <Layout>
+        <div className="max-w-4xl mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold">User not found</h1>
         </div>
-      </div>
+      </Layout>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-secondary/30 pb-20">
-      <Navigation />
-      
-      {/* Profile Header Banner */}
-      <div className="bg-gradient-to-r from-primary to-accent h-48 md:h-64 w-full relative">
-        <div className="absolute inset-0 bg-black/10"></div>
-      </div>
+  const userPosts = (allPosts ?? []).filter(p => p.authorId === id);
+  const isMe = me?.id === profileUser.id;
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative">
-        <div className="bg-card rounded-2xl shadow-sm border border-border/50 p-6 md:p-8">
-          <div className="flex flex-col md:flex-row gap-6 items-start md:items-end">
-            <Avatar className="w-32 h-32 border-4 border-background shadow-lg -mt-16 md:-mt-24 bg-background">
-              <AvatarImage src={user.profileImageUrl || undefined} className="object-cover" />
-              <AvatarFallback className="text-4xl bg-primary/10 text-primary">
-                {userInitial(user)}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 space-y-2 pt-2">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-bold font-display">{displayName(user)}</h1>
-                  <p className="text-muted-foreground font-medium">@{userHandle(user)}</p>
-                </div>
-                <div className="flex gap-3">
-                  <Button className="rounded-full px-6 bg-primary hover:bg-primary/90">Follow</Button>
-                  <Button variant="outline" className="rounded-full">Message</Button>
-                </div>
-              </div>
+  return (
+    <Layout>
+      <div className="max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-10">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 pb-8 border-b border-border">
+          <div className="ig-ring shrink-0">
+            <div className="bg-background rounded-full p-1">
+              <Avatar className="w-24 h-24 md:w-36 md:h-36" data-testid="img-profile-avatar">
+                <AvatarImage src={profileUser.profileImageUrl || undefined} />
+                <AvatarFallback className="text-3xl bg-secondary">{userInitial(profileUser)}</AvatarFallback>
+              </Avatar>
             </div>
           </div>
 
-          <div className="mt-8 space-y-6">
-            {/* Bio would go here if schema supported it */}
-            <p className="text-lg leading-relaxed max-w-2xl">
-              Digital explorer and creative mind. Sharing thoughts on technology, design, and the future of social connection.
-            </p>
-
-            <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                <span>San Francisco, CA</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <LinkIcon className="w-4 h-4" />
-                <a href="#" className="hover:text-primary hover:underline">portfolio.site</a>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>Joined {format(new Date(user.createdAt || Date.now()), 'MMMM yyyy')}</span>
+          <div className="flex-1 w-full space-y-4 text-center md:text-left">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+              <h1 className="text-xl font-light" data-testid="text-username">{userHandle(profileUser)}</h1>
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                {isMe ? (
+                  <>
+                    <Button variant="secondary" size="sm" className="rounded-lg font-semibold" data-testid="button-edit-profile">Edit profile</Button>
+                    <Button variant="secondary" size="sm" className="rounded-lg font-semibold" data-testid="button-view-archive">View archive</Button>
+                    <Button variant="ghost" size="icon" className="rounded-lg" data-testid="button-settings">
+                      <Settings className="w-5 h-5" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="sm" className="rounded-lg font-semibold" data-testid="button-follow">Follow</Button>
+                    <Link href={`/messages/${profileUser.id}`}>
+                      <Button variant="secondary" size="sm" className="rounded-lg font-semibold gap-2" data-testid="button-message">
+                        <MessageCircle className="w-4 h-4" /> Message
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="flex gap-8 border-t border-border pt-6">
-              <div className="flex gap-2 items-baseline">
-                <span className="font-bold text-lg text-foreground">{userPosts?.length || 0}</span>
-                <span className="text-muted-foreground">Posts</span>
-              </div>
-              <div className="flex gap-2 items-baseline">
-                <span className="font-bold text-lg text-foreground">1,234</span>
-                <span className="text-muted-foreground">Followers</span>
-              </div>
-              <div className="flex gap-2 items-baseline">
-                <span className="font-bold text-lg text-foreground">567</span>
-                <span className="text-muted-foreground">Following</span>
-              </div>
+            <div className="flex justify-center md:justify-start gap-8 text-sm">
+              <span><strong className="font-semibold">{userPosts.length}</strong> posts</span>
+              <span><strong className="font-semibold">0</strong> followers</span>
+              <span><strong className="font-semibold">0</strong> following</span>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-sm">{displayName(profileUser)}</p>
+              <p className="text-sm text-muted-foreground">Sharing moments on Socially ✨</p>
             </div>
           </div>
         </div>
 
-        {/* User's Posts Feed */}
-        <div className="mt-10 space-y-6">
-          <h2 className="text-xl font-bold px-2">Recent Activity</h2>
-          {userPosts?.length === 0 ? (
-            <div className="bg-card rounded-2xl p-12 text-center border border-dashed border-border">
-              <p className="text-muted-foreground">No posts yet.</p>
+        {/* Tabs */}
+        <div className="flex justify-center gap-12 border-b border-border -mt-px">
+          {[
+            { key: "posts", Icon: Grid3x3, label: "Posts" },
+            { key: "saved", Icon: Bookmark, label: "Saved" },
+            { key: "tagged", Icon: Film, label: "Tagged" },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key as any)}
+              className={`flex items-center gap-1.5 px-2 py-4 text-xs font-semibold uppercase tracking-wider border-t-2 transition-colors ${
+                tab === t.key ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid={`tab-${t.key}`}
+            >
+              <t.Icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div className="mt-1">
+          {postsLoading ? (
+            <div className="grid grid-cols-3 gap-1">
+              {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square bg-secondary animate-pulse" />)}
+            </div>
+          ) : tab !== "posts" ? (
+            <EmptyState Icon={tab === "saved" ? Bookmark : Film} label={tab === "saved" ? "No saved posts" : "No tagged posts"} />
+          ) : userPosts.length === 0 ? (
+            <div className="py-20 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4">
+                <Camera className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-light mb-2">{isMe ? "Share Photos" : "No Posts Yet"}</h3>
+              {isMe && <p className="text-sm text-muted-foreground">When you share photos, they'll appear on your profile.</p>}
             </div>
           ) : (
-            userPosts?.map(post => (
-              <PostCard key={post.id} post={post} />
-            ))
+            <div className="grid grid-cols-3 gap-1 mt-1">
+              {userPosts.map(p => (
+                <div key={p.id} className="relative aspect-square bg-secondary group cursor-pointer overflow-hidden" data-testid={`grid-post-${p.id}`}>
+                  {p.imageUrl ? (
+                    <img src={p.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full p-3 flex items-center justify-center bg-gradient-to-br from-primary/10 via-accent/10 to-primary/10">
+                      <p className="text-xs text-foreground/80 line-clamp-6">{p.content}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
+    </Layout>
+  );
+}
+
+function EmptyState({ Icon, label }: { Icon: any; label: string }) {
+  return (
+    <div className="py-20 flex flex-col items-center justify-center text-center">
+      <div className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4">
+        <Icon className="w-8 h-8" />
+      </div>
+      <h3 className="text-2xl font-light">{label}</h3>
     </div>
   );
 }
