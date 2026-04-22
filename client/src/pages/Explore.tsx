@@ -8,10 +8,9 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { displayName, userHandle, userInitial } from "@/lib/user-utils";
 import type { User } from "@shared/models/auth";
-import type { z } from "zod";
-import type { api } from "@shared/routes";
+import type { PostWithRelations } from "@shared/schema";
 
-type Post = z.infer<typeof api.posts.list.responses[200]>[0];
+type Post = PostWithRelations;
 
 export default function Explore() {
   const { user, isLoading: authLoading } = useAuth();

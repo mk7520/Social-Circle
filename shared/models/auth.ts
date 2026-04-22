@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -21,6 +21,18 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  // Profile customization
+  username: varchar("username").unique(),
+  bio: text("bio"),
+  website: varchar("website"),
+  location: varchar("location"),
+  // Privacy
+  isPrivate: boolean("is_private").default(false).notNull(),
+  hideLikes: boolean("hide_likes").default(false).notNull(),
+  // Preferences
+  theme: varchar("theme").default("system"),     // "light" | "dark" | "system"
+  language: varchar("language").default("en"),   // "en" | "ar"
+  verified: boolean("verified").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

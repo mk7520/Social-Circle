@@ -4,26 +4,26 @@ import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  Home, Search, Compass, Film, MessageCircle, Heart, PlusSquare,
-  User as UserIcon, Menu, LogOut,
+  Home, Search, Film, MessageCircle, Heart, PlusSquare, Bookmark,
+  User as UserIcon, Menu, LogOut, Settings, Moon, Sun, Languages,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { displayName, userHandle, userInitial } from "@/lib/user-utils";
-import type { NotificationWithActor } from "@shared/schema";
-import type { ConversationPreview } from "@shared/schema";
+import { userInitial } from "@/lib/user-utils";
+import type { NotificationWithActor, ConversationPreview } from "@shared/schema";
 import { ReactNode } from "react";
+import { useTheme } from "@/components/ThemeProvider";
 
 interface LayoutProps {
   children: ReactNode;
-  /** When true, the right column (desktop suggestions panel) is hidden — useful for messages, full-bleed videos, etc. */
   noRightRail?: boolean;
 }
 
-export function Layout({ children, noRightRail }: LayoutProps) {
+export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  const { resolvedTheme, toggle, setTheme } = useTheme();
 
   const { data: notifications } = useQuery<NotificationWithActor[]>({
     queryKey: ["/api/notifications"],
@@ -36,8 +36,7 @@ export function Layout({ children, noRightRail }: LayoutProps) {
     refetchInterval: 15000,
   });
   const unreadNotifs = notifications?.filter(n => !n.read).length ?? 0;
-  // Approximate unread messages: latest message in each convo not from us
-  const unreadMsgs = conversations?.filter(c => c.lastMessage.senderId !== user?.id).length ?? 0;
+  const unreadMsgs = conversations?.reduce((s, c) => s + (c.unreadCount ?? 0), 0) ?? 0;
 
   const isActive = (path: string) =>
     location === path || (path !== "/" && location.startsWith(path));
@@ -94,7 +93,6 @@ export function Layout({ children, noRightRail }: LayoutProps) {
           ))}
         </nav>
 
-        {/* Profile + menu */}
         <div className="mt-auto pt-4 border-t border-border space-y-1">
           {user && (
             <Link href={`/profile/${user.id}`}>
@@ -123,11 +121,16 @@ export function Layout({ children, noRightRail }: LayoutProps) {
                 <span className="hidden xl:inline text-base">More</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-56 rounded-2xl shadow-xl">
+            <DropdownMenuContent align="end" side="top" className="w-60 rounded-2xl shadow-xl">
               <DropdownMenuItem asChild>
-                <Link href={`/profile/${user?.id}`}>
-                  <a className="cursor-pointer flex items-center gap-3"><UserIcon className="w-4 h-4" /> Profile</a>
-                </Link>
+                <Link href="/settings"><a className="cursor-pointer flex items-center gap-3" data-testid="menu-settings"><Settings className="w-4 h-4" /> Settings</a></Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/saved"><a className="cursor-pointer flex items-center gap-3" data-testid="menu-saved"><Bookmark className="w-4 h-4" /> Saved</a></Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={toggle} className="cursor-pointer" data-testid="menu-toggle-theme">
+                {resolvedTheme === "dark" ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+                Switch appearance
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-destructive focus:text-destructive" data-testid="button-logout">
@@ -146,6 +149,9 @@ export function Layout({ children, noRightRail }: LayoutProps) {
           </span>
         </Link>
         <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="rounded-full" onClick={toggle} data-testid="button-mobile-theme">
+            {resolvedTheme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </Button>
           <Link href="/notifications">
             <Button variant="ghost" size="icon" className="rounded-full relative" data-testid="link-mobile-notifications">
               <Heart className="w-6 h-6" fill={isActive("/notifications") ? "currentColor" : "none"} />
@@ -185,19 +191,19 @@ export function Layout({ children, noRightRail }: LayoutProps) {
                   <AvatarImage src={user?.profileImageUrl || undefined} />
                   <AvatarFallback className="text-[10px] bg-secondary">{userInitial(user)}</AvatarFallback>
                 </Avatar>
-              ) : (
+              ) : item.Icon ? (
                 <item.Icon
                   className={`w-7 h-7 ${isActive(item.path) ? "stroke-[2.5]" : ""}`}
                   fill={isActive(item.path) && item.Icon === Home ? "currentColor" : "none"}
                 />
-              )}
+              ) : null}
             </a>
           </Link>
         ))}
       </nav>
 
       {/* === Main Content === */}
-      <main className={`md:ml-[72px] xl:ml-[245px] pb-16 md:pb-0 ${noRightRail ? "" : ""}`}>
+      <main className="md:ml-[72px] xl:ml-[245px] pb-16 md:pb-0">
         {children}
       </main>
     </div>

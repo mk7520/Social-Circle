@@ -11,6 +11,10 @@ import Notifications from "@/pages/Notifications";
 import Videos from "@/pages/Videos";
 import Create from "@/pages/Create";
 import Explore from "@/pages/Explore";
+import Saved from "@/pages/Saved";
+import Settings from "@/pages/Settings";
+import Tag from "@/pages/Tag";
+import FollowList from "@/pages/FollowList";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +24,12 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/explore" component={Explore} />
       <Route path="/create" component={Create} />
+      <Route path="/saved" component={Saved} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/settings/profile" component={Settings} />
+      <Route path="/tag/:tag" component={Tag} />
+      <Route path="/profile/:id/followers">{() => <FollowList kind="followers" />}</Route>
+      <Route path="/profile/:id/following">{() => <FollowList kind="following" />}</Route>
       <Route path="/profile/:id" component={Profile} />
       <Route path="/messages" component={Messages} />
       <Route path="/messages/:otherId" component={Messages} />

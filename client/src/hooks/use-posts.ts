@@ -1,29 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
+import type { PostWithRelations } from "@shared/schema";
 
 type CreatePostInput = z.infer<typeof api.posts.create.input>;
 
 export function usePosts() {
-  return useQuery({
+  return useQuery<PostWithRelations[]>({
     queryKey: [api.posts.list.path],
     queryFn: async () => {
       const res = await fetch(api.posts.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch posts");
-      return api.posts.list.responses[200].parse(await res.json());
+      return res.json();
     },
   });
 }
 
 export function usePost(id: number) {
-  return useQuery({
+  return useQuery<PostWithRelations | null>({
     queryKey: [api.posts.get.path, id],
     queryFn: async () => {
       const url = buildUrl(api.posts.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("Failed to fetch post");
-      return api.posts.get.responses[200].parse(await res.json());
+      return res.json();
     },
     enabled: !!id,
   });
